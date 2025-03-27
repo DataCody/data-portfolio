@@ -1,0 +1,41 @@
+name: Compile LaTeX to PDF
+
+on:
+  push:
+    branches:
+      - main  # 当 main 分支有变更时触发
+    paths:
+      - cv/main.tex  # 只监控 main.tex 文件的变化
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🔧 Set up LaTeX (Docker)
+        run: |
+          docker run --rm \
+          -v ${{ github.workspace }}:/workspace \
+          -w /workspace/cv \
+          texlive/texlive:latest \
+          bash -c " pdflatex -interaction=nonstopmode -shell-escape main.tex"
+
+      - name: 📤 Upload PDF as an artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: compiled-pdf
+          path: cv/resume.pdf  # LaTeX 生成的 PDF 文件
+
+      - name: 🚀 Commit and push compiled PDF
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          mv cv/main.pdf cv/resume.pdf  # 将 main.pdf 重命名为 resume.pdf
+          git add cv/resume.pdf
+          git commit -m "Auto-compiled latest resume.pdf"
+          git push origin main
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # 使用 GitHub 提供的 Token 进行授权
